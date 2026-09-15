@@ -1,0 +1,66 @@
+{% extends "tracker/base.html" %}
+{% block title %}Ingresar · Seguimiento de Pendientes{% endblock %}
+
+{% block body %}
+{% include "tracker/_iconos.html" %}
+<div class="flex min-h-dvh items-center justify-center bg-gradient-to-br from-slate-100 to-brand-50 px-4 py-10">
+  <div class="w-full max-w-sm">
+    <div class="mb-6 text-center">
+      <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-800 text-white shadow-lg shadow-brand-800/20">
+        <svg viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><use href="#i-grafico"/></svg>
+      </div>
+      <h1 class="text-xl font-semibold text-slate-900">Seguimiento de Pendientes</h1>
+      <p class="text-sm text-slate-500">Proyectos · Requerimientos · Incidencias</p>
+    </div>
+
+    <form method="post" class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200" onsubmit="bloquearIngreso(this)">
+      {% csrf_token %}
+
+      {% if form.errors %}
+        <div role="alert" class="mb-4 flex items-start gap-2 rounded-lg bg-rose-50 px-3 py-2.5 text-sm text-rose-900 ring-1 ring-rose-300">
+          <svg viewBox="0 0 24 24" class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-alerta"/></svg>
+          <span>Usuario o contraseña incorrectos. Verificá los datos e intentá de nuevo.</span>
+        </div>
+      {% endif %}
+
+      <label for="id_username" class="mb-1 block text-xs font-semibold text-slate-700">Usuario</label>
+      <input id="id_username" name="username" autofocus required autocomplete="username"
+             class="mb-4 min-h-[42px] w-full rounded-lg border border-slate-300 px-3 py-2 text-sm transition-colors duration-150 focus:border-brand-700">
+
+      <label for="id_password" class="mb-1 block text-xs font-semibold text-slate-700">Contraseña</label>
+      <div class="relative mb-5">
+        <input id="id_password" name="password" type="password" required autocomplete="current-password"
+               class="min-h-[42px] w-full rounded-lg border border-slate-300 px-3 py-2 pr-11 text-sm transition-colors duration-150 focus:border-brand-700">
+        <button type="button" onclick="alternarClave(this)" aria-pressed="false" aria-label="Mostrar contraseña"
+                class="absolute right-1 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700">
+          <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-ojo"/></svg>
+        </button>
+      </div>
+
+      <button class="min-h-[42px] w-full cursor-pointer rounded-lg bg-brand-800 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-900 disabled:cursor-not-allowed disabled:opacity-60">
+        Ingresar
+      </button>
+    </form>
+
+    <p class="mt-4 text-center text-xs text-slate-400">
+      ¿No tenés acceso? Pedí una cuenta al administrador del sistema.
+    </p>
+  </div>
+</div>
+
+<script>
+  function alternarClave(btn) {
+    const campo = document.getElementById('id_password');
+    const visible = campo.type === 'text';
+    campo.type = visible ? 'password' : 'text';
+    btn.setAttribute('aria-pressed', String(!visible));
+    btn.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
+  }
+
+  function bloquearIngreso(form) {
+    const btn = form.querySelector('button:not([type="button"])');
+    btn.disabled = true;
+    btn.textContent = 'Ingresando…';
+  }
+</script>
+{% endblock %}

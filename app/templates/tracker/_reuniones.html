@@ -1,0 +1,112 @@
+{% comment %}
+Agenda de un registro: recordatorios y reuniones, propias y de sus tareas.
+Se inyecta dentro del modal de detalle.
+{% endcomment %}
+
+<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+  <h4 class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-calendario"/></svg>
+    Agenda y seguimiento
+  </h4>
+
+  <div class="flex items-center gap-1.5">
+    <button type="button" onclick="nuevoRecordatorio({{ t.pk }})"
+            class="inline-flex min-h-[30px] cursor-pointer items-center gap-1.5 rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors duration-150 hover:bg-amber-700">
+      <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-campana"/></svg>
+      Recordatorio
+    </button>
+    <button type="button" onclick="nuevaReunion({{ t.pk }})"
+            class="inline-flex min-h-[30px] cursor-pointer items-center gap-1.5 rounded-lg bg-brand-800 px-2.5 py-1 text-xs font-semibold text-white transition-colors duration-150 hover:bg-brand-900">
+      <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-calendario"/></svg>
+      Reunión
+    </button>
+  </div>
+</div>
+
+{% if recordatorios %}
+  <div class="mb-3 space-y-1.5">
+    {% for r in recordatorios %}
+      <div class="flex items-start gap-2 rounded-lg px-3 py-2 text-xs ring-1
+                  {% if r.visto %}bg-slate-50 text-slate-400 ring-slate-200
+                  {% elif r.vencido %}bg-rose-50 text-rose-900 ring-rose-200
+                  {% else %}bg-amber-50 text-amber-900 ring-amber-200{% endif %}">
+        <svg viewBox="0 0 24 24" class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true">
+          <use href="{% if r.visto %}#i-ok{% else %}#i-campana{% endif %}"/>
+        </svg>
+        <div class="min-w-0 flex-1">
+          <span class="block font-semibold {% if r.visto %}line-through{% endif %}">{{ r.titulo }}</span>
+          <span class="block text-[11px] opacity-80">
+            {{ r.fecha|date:"d/m/Y" }}
+            {% if r.tarea %}· tarea <span class="font-mono">{{ r.tarea.codigo }}</span>{% endif %}
+            {% if r.vencido and not r.visto %}· <strong>vencido</strong>{% endif %}
+          </span>
+          {% if r.nota %}<span class="mt-0.5 block text-[11px] italic opacity-90">{{ r.nota|truncatechars:120 }}</span>{% endif %}
+        </div>
+        <div class="flex shrink-0 items-center gap-1">
+          {% if not r.visto %}
+            <button type="button" onclick="marcarRecordatorio({{ r.pk }}, {{ t.pk }})" title="Marcar como atendido"
+                    class="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-current opacity-60 transition-opacity duration-150 hover:opacity-100">
+              <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-ok"/></svg>
+              <span class="sr-only">Marcar «{{ r.titulo }}» como atendido</span>
+            </button>
+          {% endif %}
+          <button type="button" onclick="eliminarRecordatorio({{ r.pk }}, {{ t.pk }})" title="Eliminar recordatorio"
+                  class="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-current opacity-60 transition-opacity duration-150 hover:opacity-100">
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-basura"/></svg>
+            <span class="sr-only">Eliminar «{{ r.titulo }}»</span>
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if reuniones %}
+  <div class="space-y-1.5">
+    {% for m in reuniones %}
+      <div class="flex items-start gap-2 rounded-lg px-3 py-2 text-xs ring-1
+                  {% if m.pasada %}bg-slate-50 text-slate-500 ring-slate-200{% else %}bg-brand-50 text-brand-900 ring-brand-200{% endif %}">
+        <svg viewBox="0 0 24 24" class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-calendario"/></svg>
+        <div class="min-w-0 flex-1">
+          <span class="block font-semibold">{{ m.titulo }}</span>
+          <span class="tabular block text-[11px] opacity-80">
+            {{ m.fecha_hora|date:"d/m/Y H:i" }} · {{ m.duracion_minutos }} min
+            {% if m.tarea %}· tarea <span class="font-mono">{{ m.tarea.codigo }}</span>{% endif %}
+            {% if m.pasada %}· ya pasó{% endif %}
+          </span>
+          {% if m.lugar %}<span class="block text-[11px] opacity-80">{{ m.lugar }}</span>{% endif %}
+          {% if m.enlace %}
+            <a href="{{ m.enlace }}" target="_blank" rel="noopener"
+               class="block truncate text-[11px] underline underline-offset-2 opacity-90 hover:opacity-100">{{ m.enlace }}</a>
+          {% endif %}
+          {% if m.lista_participantes %}
+            <span class="block text-[11px] opacity-70">{{ m.lista_participantes|join:" · " }}</span>
+          {% endif %}
+        </div>
+        <div class="flex shrink-0 items-center gap-1">
+          <a href="{% url 'reunion_ics' m.pk %}" title="Descargar .ics para el calendario"
+             class="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-current opacity-60 transition-opacity duration-150 hover:opacity-100">
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-bajar"/></svg>
+            <span class="sr-only">Descargar «{{ m.titulo }}» como .ics</span>
+          </a>
+          <button type="button" onclick="editarReunion({{ m.pk }})" title="Editar reunión"
+                  class="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-current opacity-60 transition-opacity duration-150 hover:opacity-100">
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-lapiz"/></svg>
+            <span class="sr-only">Editar «{{ m.titulo }}»</span>
+          </button>
+          <button type="button" onclick="eliminarReunion({{ m.pk }}, {{ t.pk }})" title="Eliminar reunión"
+                  class="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-current opacity-60 transition-opacity duration-150 hover:opacity-100">
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-basura"/></svg>
+            <span class="sr-only">Eliminar «{{ m.titulo }}»</span>
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if not reuniones and not recordatorios %}
+  <p class="rounded-lg bg-slate-50 p-3 text-xs text-slate-500 ring-1 ring-slate-200">
+    Sin recordatorios ni reuniones para este registro.
+  </p>
+{% endif %}

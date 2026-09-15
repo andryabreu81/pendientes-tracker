@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Seguimiento de Pendientes{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Paleta "Data-Dense Dashboard": azul de datos + ámbar de acento.
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Fira Sans', 'system-ui', 'sans-serif'],
+            mono: ['Fira Code', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50:  '#EFF6FF',
+              100: '#DBEAFE',
+              500: '#3B82F6',
+              600: '#2563EB',
+              700: '#1D4ED8',
+              800: '#1E40AF',
+              900: '#1E3A8A',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* Tipografía tabular: los porcentajes y fechas no bailan al cambiar de valor. */
+    .tabular { font-variant-numeric: tabular-nums; }
+
+    .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Anillo de foco visible en todo elemento interactivo: sin esto, quien
+       navega con teclado no sabe dónde está parado. */
+    :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+      outline: 2px solid #1E40AF;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    @keyframes aparecer {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .animar-entrada { animation: aparecer .18s ease-out; }
+
+    @keyframes crecer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .animar-barra { animation: crecer .5s cubic-bezier(.22,1,.36,1) both; transform-origin: left; }
+
+    /* Quien pidió menos movimiento en su sistema, recibe menos movimiento. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased">
+  {% block body %}{% endblock %}
+</body>
+</html>

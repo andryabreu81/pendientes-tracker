@@ -1,0 +1,134 @@
+{% load tracker_extras %}
+{% comment %}
+Lista de tareas de un registro. Se inyecta dentro del modal de detalle.
+{% endcomment %}
+
+<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+  <h4 class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-lista"/></svg>
+    Tareas <span class="tabular">({{ tareas|length }})</span>
+  </h4>
+
+  <div class="flex items-center gap-1.5">
+    {% if tareas %}
+      <a href="{% url 'exportar_tareas_de' t.pk %}"
+         class="inline-flex min-h-[30px] cursor-pointer items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-300 transition-colors duration-150 hover:bg-slate-50">
+        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-bajar"/></svg>
+        Exportar
+      </a>
+    {% endif %}
+    <button type="button" onclick="nuevaTarea({{ t.pk }})"
+            class="inline-flex min-h-[30px] cursor-pointer items-center gap-1.5 rounded-lg bg-brand-800 px-2.5 py-1 text-xs font-semibold text-white transition-colors duration-150 hover:bg-brand-900">
+      <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-mas"/></svg>
+      Nueva tarea
+    </button>
+  </div>
+</div>
+
+{% if resumen %}
+  <div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-xs ring-1 ring-slate-200">
+    <span class="text-slate-600">
+      <strong class="tabular text-slate-900">{{ resumen.listas }}</strong> de
+      <strong class="tabular text-slate-900">{{ resumen.total }}</strong> listas
+    </span>
+    <span class="text-slate-600">
+      Avance según tareas:
+      <strong class="tabular text-brand-700">{{ resumen.avance }}%</strong>
+    </span>
+    {% if resumen.vencidas %}
+      <span class="inline-flex items-center gap-1 font-medium text-rose-700">
+        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-alerta"/></svg>
+        {{ resumen.vencidas }} vencida{{ resumen.vencidas|pluralize }}
+      </span>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% if tareas %}
+  <div class="scrollbar-thin max-h-64 overflow-y-auto rounded-lg ring-1 ring-slate-200">
+    <table class="w-full text-xs">
+      <caption class="sr-only">Tareas de {{ t.codigo }}</caption>
+      <thead class="sticky top-0 bg-slate-50 text-left text-slate-500">
+        <tr>
+          <th scope="col" class="px-3 py-1.5 font-semibold">Tarea</th>
+          <th scope="col" class="px-3 py-1.5 font-semibold">Responsable</th>
+          <th scope="col" class="px-3 py-1.5 font-semibold">Estado</th>
+          <th scope="col" class="w-24 px-3 py-1.5 font-semibold">Avance</th>
+          <th scope="col" class="px-3 py-1.5 font-semibold">Límite</th>
+          <th scope="col" class="px-3 py-1.5 text-right font-semibold">Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for ta in tareas %}
+          <tr class="transition-colors duration-150 hover:bg-brand-50/40">
+            <td class="px-3 py-1.5">
+              <div class="flex items-start gap-1.5">
+                <span class="mt-0.5 h-2 w-2 shrink-0 rounded-full {{ ta.prioridad|color_prioridad }}"
+                      title="Prioridad {{ ta.get_prioridad_display }}"></span>
+                <div class="min-w-0">
+                  <span class="block text-slate-800">{{ ta.descripcion }}</span>
+                  <span class="font-mono text-[10px] text-slate-400">{{ ta.codigo }}</span>
+                  {% if ta.observacion %}
+                    <span class="mt-0.5 block text-[11px] italic text-amber-800">{{ ta.observacion|truncatechars:70 }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="whitespace-nowrap px-3 py-1.5 text-slate-600">{{ ta.responsable|default:"—" }}</td>
+            <td class="whitespace-nowrap px-3 py-1.5">
+              <span class="rounded px-1.5 py-0.5 text-[11px] font-medium {{ ta.estado|badge_estado_tarea }}">
+                {{ ta.get_estado_display }}
+              </span>
+            </td>
+            <td class="px-3 py-1.5">
+              <div class="flex items-center gap-1.5">
+                <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div class="h-full rounded-full {% if ta.avance == 100 %}bg-emerald-600{% elif ta.avance >= 50 %}bg-brand-600{% else %}bg-amber-500{% endif %}"
+                       style="width: {{ ta.avance }}%"></div>
+                </div>
+                <span class="tabular w-8 text-right text-[11px] font-semibold text-slate-600">{{ ta.avance }}%</span>
+              </div>
+            </td>
+            <td class="whitespace-nowrap px-3 py-1.5">
+              {% if ta.fecha_limite %}
+                <span class="{% if ta.vencida %}font-semibold text-rose-700{% else %}text-slate-600{% endif %}">
+                  {{ ta.fecha_limite|date:"d/m/y" }}
+                </span>
+              {% else %}
+                <span class="text-slate-400">—</span>
+              {% endif %}
+            </td>
+            <td class="whitespace-nowrap px-3 py-1.5 text-right">
+              <div class="inline-flex items-center gap-1">
+                <button type="button" onclick="nuevoRecordatorioTarea({{ ta.pk }})" title="Recordatorio sobre {{ ta.codigo }}"
+                        class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-amber-100 hover:text-amber-700">
+                  <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-campana"/></svg>
+                  <span class="sr-only">Crear recordatorio sobre {{ ta.codigo }}</span>
+                </button>
+                <button type="button" onclick="nuevaReunionTarea({{ ta.pk }})" title="Reunión sobre {{ ta.codigo }}"
+                        class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-brand-100 hover:text-brand-800">
+                  <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-calendario"/></svg>
+                  <span class="sr-only">Pautar reunión sobre {{ ta.codigo }}</span>
+                </button>
+                <button type="button" onclick="editarTarea({{ ta.pk }})" title="Editar {{ ta.codigo }}"
+                        class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-brand-100 hover:text-brand-800">
+                  <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-lapiz"/></svg>
+                  <span class="sr-only">Editar {{ ta.codigo }}</span>
+                </button>
+                <button type="button" onclick="eliminarTarea({{ ta.pk }}, '{{ ta.codigo }}', {{ t.pk }})" title="Eliminar {{ ta.codigo }}"
+                        class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-rose-100 hover:text-rose-700">
+                  <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-basura"/></svg>
+                  <span class="sr-only">Eliminar {{ ta.codigo }}</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="rounded-lg bg-slate-50 p-3 text-xs text-slate-500 ring-1 ring-slate-200">
+    Este registro todavía no tiene tareas cargadas.
+  </p>
+{% endif %}

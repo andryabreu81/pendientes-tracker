@@ -1,0 +1,21 @@
+# Entorno virtual local: se instalan las dependencias dentro de la imagen
+app/env/
+env/
+.venv/
+
+__pycache__/
+*.py[cod]
+
+# Credenciales y datos: nunca dentro de la imagen
+.env
+media/
+staticfiles/
+*.sqlite3
+
+# Documentación y material que no hace falta en runtime
+*.pdf
+*.pptx
+*.png
+!app/tracker/marca/*.png
+.git/
+.DS_Store

@@ -1,0 +1,91 @@
+{% comment %}Campos del formulario, reutilizados en alta y edicion.{% endcomment %}
+<div class="grid gap-3 sm:grid-cols-2">
+  {% if form.instance.pk %}
+    {% comment %}
+    El codigo solo se muestra al editar: en el alta lo genera el sistema.
+    Cambiarlo rompe la correspondencia con los Excel ya exportados, por eso
+    el aviso va pegado al campo y no escondido en la ayuda.
+    {% endcomment %}
+    <div class="sm:col-span-2 rounded-lg bg-amber-50 p-3 ring-1 ring-amber-200">
+      <label for="{{ form.codigo.id_for_label }}" class="mb-1 block text-xs font-semibold text-amber-900">
+        Número de requerimiento
+      </label>
+      {{ form.codigo }}
+      {% if form.codigo.errors %}
+        <p class="mt-1 text-xs font-semibold text-rose-700">{{ form.codigo.errors|striptags }}</p>
+      {% endif %}
+      <p class="mt-1.5 flex items-start gap-1.5 text-[11px] leading-snug text-amber-800">
+        <svg viewBox="0 0 24 24" class="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true"><use href="#i-alerta"/></svg>
+        <span>
+          Formato <strong>PRY-000</strong>, <strong>REQ-000</strong> o <strong>INC-000</strong>, según el tipo.
+          Al cambiarlo se renombran también las tareas del registro, y los archivos
+          exportados antes del cambio dejan de coincidir al reimportarlos.
+        </span>
+      </p>
+    </div>
+  {% endif %}
+
+  <div class="sm:col-span-2">
+    <label for="{{ form.nombre.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">
+      Nombre <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(obligatorio)</span>
+    </label>
+    {{ form.nombre }}
+  </div>
+
+  <div>
+    <label for="{{ form.categoria.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">
+      Tipo <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(obligatorio)</span>
+    </label>
+    {{ form.categoria }}
+  </div>
+
+  <div>
+    <label for="{{ form.estatus.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">
+      Estatus <span class="text-rose-600" aria-hidden="true">*</span><span class="sr-only">(obligatorio)</span>
+    </label>
+    {{ form.estatus }}
+  </div>
+
+  <div>
+    <label for="{{ form.fecha_solicitada.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">Fecha solicitada</label>
+    {{ form.fecha_solicitada }}
+  </div>
+
+  <div>
+    <label for="{{ form.fecha_fin.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">Fecha final</label>
+    {{ form.fecha_fin }}
+    {% if form.fecha_fin.errors %}
+      <p class="mt-1 text-xs font-semibold text-rose-700">{{ form.fecha_fin.errors|striptags }}</p>
+    {% endif %}
+    <p class="mt-1 text-xs text-slate-500">Fecha comprometida de cierre. Define el atraso y el riesgo.</p>
+  </div>
+
+  <div>
+    <label for="{{ form.funcional_solicitante.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">Funcional solicitante</label>
+    {{ form.funcional_solicitante }}
+    <p class="mt-1 text-xs text-slate-500">Área o persona que pide el requerimiento</p>
+  </div>
+
+  <div>
+    <label for="{{ form.asignado.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">Asignado a</label>
+    {{ form.asignado }}
+    <p class="mt-1 text-xs text-slate-500">Varios responsables: separalos con guion</p>
+  </div>
+
+  <div>
+    <label for="{{ form.avance.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">Porcentaje de avance</label>
+    {{ form.avance }}
+    <p class="mt-1 text-xs text-slate-500">Valor entre 0 y 100</p>
+  </div>
+
+  <div class="sm:col-span-2">
+    <label for="{{ form.descripcion.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">Descripción</label>
+    {{ form.descripcion }}
+  </div>
+
+  <div class="sm:col-span-2">
+    <label for="{{ form.observacion.id_for_label }}" class="mb-1 block text-xs font-semibold text-slate-700">Observación</label>
+    {{ form.observacion }}
+    <p class="mt-1 text-xs text-slate-500">Comentarios adicionales o bloqueos</p>
+  </div>
+</div>

@@ -1,0 +1,34 @@
+name: pendientes-tracker
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    env_file: [.env]
+    volumes:
+      - media:/app/media
+    depends_on:
+      db: {condition: service_healthy}
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_NAME:-pendientes}
+      POSTGRES_USER:     ${DB_USER:-pendientes}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?falta DB_PASSWORD en .env}
+    ports:
+      - "${DB_PORT_HOST:-55432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pendientes} -d ${DB_NAME:-pendientes}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:
+  media:

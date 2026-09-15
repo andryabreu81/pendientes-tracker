@@ -1,0 +1,195 @@
+{% load tracker_extras %}
+<div class="mb-5 flex items-start justify-between gap-4">
+  <div class="min-w-0">
+    <div class="mb-1.5 flex flex-wrap items-center gap-2">
+      <span class="font-mono text-xs font-bold text-slate-500">{{ t.codigo }}</span>
+      <span class="rounded-full px-2 py-0.5 text-xs font-medium
+        {% if t.categoria == 'proyecto' %}bg-brand-100 text-brand-800
+        {% elif t.categoria == 'requerimiento' %}bg-violet-100 text-violet-800
+        {% else %}bg-rose-100 text-rose-800{% endif %}">{{ t.get_categoria_display }}</span>
+      <span class="rounded px-2 py-0.5 text-xs font-medium {{ t.estatus|badge_estatus }}">{{ t.estatus }}</span>
+    </div>
+    <h3 class="text-lg font-semibold leading-snug text-slate-900">{{ t.nombre }}</h3>
+  </div>
+  <button type="button" onclick="cerrarModal('modal-detalle')"
+          class="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700">
+    <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-cerrar"/></svg>
+    <span class="sr-only">Cerrar detalle</span>
+  </button>
+</div>
+
+<div class="mb-5 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+  <div class="mb-2 flex items-baseline justify-between">
+    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Porcentaje de avance</span>
+    <span class="tabular text-2xl font-bold {% if t.avance >= 90 %}text-emerald-700{% elif t.avance >= 50 %}text-brand-700{% else %}text-amber-600{% endif %}">{{ t.avance }}%</span>
+  </div>
+  {% with r=t.resumen_tareas %}
+    {% if r %}
+      <p class="mb-2 text-[11px] text-slate-500">
+        Según sus tareas: <strong class="tabular text-slate-700">{{ r.avance }}%</strong>
+        ({{ r.listas }} de {{ r.total }} listas) · valor informativo
+      </p>
+    {% endif %}
+  {% endwith %}
+  <div class="h-3 overflow-hidden rounded-full bg-white ring-1 ring-slate-200"
+       role="progressbar" aria-valuenow="{{ t.avance }}" aria-valuemin="0" aria-valuemax="100"
+       aria-label="Avance de {{ t.codigo }}">
+    <div class="animar-barra h-full rounded-full {% if t.avance >= 90 %}bg-emerald-600{% elif t.avance >= 50 %}bg-brand-600{% else %}bg-amber-500{% endif %}"
+         style="width: {{ t.avance }}%"></div>
+  </div>
+</div>
+
+<dl class="mb-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+  <div>
+    <dt class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Número de requerimiento</dt>
+    <dd class="mt-0.5 font-mono text-sm text-slate-900">{{ t.codigo }}</dd>
+  </div>
+
+  <div>
+    <dt class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Fecha solicitada</dt>
+    <dd class="mt-0.5 text-sm">
+      {% if t.fecha_solicitada %}
+        <span class="text-slate-900">{{ t.fecha_solicitada|date:"d/m/Y" }}</span>
+      {% else %}
+        <span class="inline-flex items-center gap-1 text-amber-700">
+          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-alerta"/></svg>
+          Pendiente de completar
+        </span>
+      {% endif %}
+    </dd>
+  </div>
+
+  <div>
+    <dt class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Fecha final</dt>
+    <dd class="mt-0.5 text-sm">
+      {% if t.fecha_fin %}
+        <span class="{% if t.vencido %}font-semibold text-rose-700{% else %}text-slate-900{% endif %}">
+          {{ t.fecha_fin|date:"d/m/Y" }}
+        </span>
+        {% if t.vencido %}
+          <span class="ml-1 inline-flex items-center gap-1 rounded bg-rose-100 px-1.5 py-0.5 text-[11px] font-semibold text-rose-800">
+            <svg viewBox="0 0 24 24" class="h-3 w-3" aria-hidden="true"><use href="#i-alerta"/></svg>
+            {{ t.dias_atraso }} día{{ t.dias_atraso|pluralize }} de atraso
+          </span>
+        {% endif %}
+      {% else %}
+        <span class="inline-flex items-center gap-1 text-amber-700">
+          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-alerta"/></svg>
+          Sin definir
+        </span>
+      {% endif %}
+    </dd>
+  </div>
+
+  <div>
+    <dt class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Riesgo</dt>
+    <dd class="mt-0.5 text-sm">
+      <span class="tabular inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-semibold {{ t.risk_level|badge_riesgo }}">
+        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-escudo-alerta"/></svg>
+        {{ t.risk_level_label }} · {{ t.risk_score }}
+      </span>
+      <span class="ml-1 font-mono text-[11px] text-slate-400">{{ t.risk_level }}</span>
+    </dd>
+  </div>
+
+  <div>
+    <dt class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Funcional solicitante</dt>
+    <dd class="mt-0.5 text-sm">
+      {% if t.funcional_solicitante %}
+        <span class="text-slate-900">{{ t.funcional_solicitante }}</span>
+      {% else %}
+        <span class="inline-flex items-center gap-1 text-amber-700">
+          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-alerta"/></svg>
+          Pendiente de completar
+        </span>
+      {% endif %}
+    </dd>
+  </div>
+
+  <div>
+    <dt class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Asignado a</dt>
+    <dd class="mt-0.5 text-sm {% if t.asignado %}text-slate-900{% else %}text-slate-400{% endif %}">
+      {{ t.asignado|default:"Sin asignar" }}
+    </dd>
+  </div>
+
+  <div class="sm:col-span-2">
+    <dt class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Descripción</dt>
+    <dd class="mt-1 whitespace-pre-line rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700 ring-1 ring-slate-200">
+      {{ t.descripcion|default:"Sin descripción registrada." }}
+    </dd>
+  </div>
+
+  <div class="sm:col-span-2">
+    <dt class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Observación</dt>
+    <dd class="mt-1 whitespace-pre-line rounded-lg p-3 text-sm leading-relaxed ring-1
+        {% if t.observacion %}bg-amber-50 text-amber-900 ring-amber-200{% else %}bg-slate-50 text-slate-400 ring-slate-200{% endif %}">
+      {{ t.observacion|default:"Sin observaciones ni bloqueos." }}
+    </dd>
+  </div>
+</dl>
+
+<div id="caja-tareas" class="mb-5">
+  {% include "tracker/_tareas.html" with tareas=t.tareas.all resumen=t.resumen_tareas %}
+</div>
+
+<div id="caja-agenda" class="mb-5">
+  {% include "tracker/_reuniones.html" with reuniones=agenda_reuniones recordatorios=agenda_recordatorios %}
+</div>
+
+<div class="mb-5">
+  <h4 class="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-reloj"/></svg>
+    Historial de cambios <span class="tabular">({{ historial|length }})</span>
+  </h4>
+
+  {% if historial %}
+    <div class="scrollbar-thin max-h-56 overflow-y-auto rounded-lg ring-1 ring-slate-200">
+      <table class="w-full text-xs">
+        <caption class="sr-only">Historial de cambios de {{ t.codigo }}</caption>
+        <thead class="sticky top-0 bg-slate-50 text-left text-slate-500">
+          <tr>
+            <th scope="col" class="px-3 py-1.5 font-semibold">Fecha</th>
+            <th scope="col" class="px-3 py-1.5 font-semibold">Campo</th>
+            <th scope="col" class="px-3 py-1.5 font-semibold">Antes</th>
+            <th scope="col" class="px-3 py-1.5 font-semibold">Después</th>
+            <th scope="col" class="px-3 py-1.5 font-semibold">Autor</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for h in historial %}
+            <tr class="transition-colors duration-150 hover:bg-slate-50">
+              <td class="tabular whitespace-nowrap px-3 py-1.5 text-slate-500">{{ h.creado_en|date:"d/m/y H:i" }}</td>
+              <td class="whitespace-nowrap px-3 py-1.5 font-medium text-slate-700">{{ h.campo_label }}</td>
+              <td class="max-w-[9rem] truncate px-3 py-1.5 text-slate-400">{{ h.valor_anterior|default:"—"|truncatechars:40 }}</td>
+              <td class="max-w-[9rem] truncate px-3 py-1.5 font-medium text-slate-800">{{ h.valor_nuevo|default:"—"|truncatechars:40 }}</td>
+              <td class="whitespace-nowrap px-3 py-1.5 text-slate-500">{{ h.autor }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="rounded-lg bg-slate-50 p-3 text-xs text-slate-400 ring-1 ring-slate-200">Sin cambios registrados todavía.</p>
+  {% endif %}
+</div>
+
+<div class="flex items-center justify-between border-t border-slate-200 pt-4">
+  <form method="post" action="{% url 'ticket_eliminar' t.pk %}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este registro ({{ t.codigo }})? Esta acción no se puede deshacer.');">
+    {% csrf_token %}
+    <button type="submit"
+            class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-50 px-3.5 py-2 text-sm font-semibold text-rose-700 ring-1 ring-rose-200 transition-colors duration-150 hover:bg-rose-100 hover:text-rose-800">
+      <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-basura"/></svg>
+      Eliminar
+    </button>
+  </form>
+  <div class="flex gap-2">
+    <button type="button" onclick="cerrarModal('modal-detalle')"
+            class="cursor-pointer rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-300 transition-colors duration-150 hover:bg-slate-50">Cerrar</button>
+    <button type="button" onclick="editar({{ t.pk }})"
+            class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-900">
+      <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-lapiz"/></svg>
+      Editar
+    </button>
+  </div>
+</div>

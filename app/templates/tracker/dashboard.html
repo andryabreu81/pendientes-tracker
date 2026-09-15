@@ -1,0 +1,994 @@
+{% extends "tracker/base.html" %}
+{% load tracker_extras %}
+
+{% block body %}
+{% include "tracker/_iconos.html" %}
+{% with m=metricas %}
+<div class="min-h-dvh">
+
+  <a href="#contenido" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand-800 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">
+    Saltar al contenido
+  </a>
+
+  <!-- ENCABEZADO -->
+  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-[1600px] flex-wrap items-center gap-3 px-4 py-2.5">
+      <div class="flex items-center gap-2.5">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-800 text-white">
+          <svg viewBox="0 0 24 24" class="h-5 w-5"><use href="#i-grafico"/></svg>
+        </div>
+        <div class="leading-tight">
+          <h1 class="text-sm font-semibold text-slate-900">Seguimiento de Pendientes</h1>
+          <p class="text-xs text-slate-500">Proyectos · Requerimientos · Incidencias</p>
+        </div>
+      </div>
+
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <!-- Aviso de datos cargados por otra estación -->
+        <div id="aviso-nuevo" role="status" aria-live="polite"
+             class="hidden items-center gap-2 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 ring-1 ring-amber-300">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0" aria-hidden="true"><use href="#i-alerta"/></svg>
+          <span>Otra estación cargó datos</span>
+          <button type="button" onclick="location.reload()"
+                  class="inline-flex cursor-pointer items-center gap-1 rounded bg-amber-600 px-2 py-1 font-semibold text-white transition-colors duration-150 hover:bg-amber-700">
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-refrescar"/></svg>
+            Actualizar
+          </button>
+        </div>
+
+        <div class="relative">
+          <button type="button" onclick="alternarMenu()" id="btn-exportar"
+                  aria-haspopup="true" aria-expanded="false"
+                  class="inline-flex min-h-[38px] cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-300 transition-colors duration-150 hover:bg-slate-50">
+            <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-bajar"/></svg>
+            Exportar
+          </button>
+
+          <div id="menu-exportar"
+               class="absolute right-0 top-full z-40 mt-1 hidden w-72 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200">
+            <a href="{% url 'exportar_registros' %}?{{ request.GET.urlencode }}"
+               onclick="cerrarMenu()"
+               class="flex items-start gap-2.5 px-3 py-2.5 transition-colors duration-150 hover:bg-brand-50">
+              <svg viewBox="0 0 24 24" class="mt-0.5 h-4 w-4 shrink-0 text-brand-700" aria-hidden="true"><use href="#i-hoja"/></svg>
+              <span>
+                <span class="block text-xs font-semibold text-slate-800">Registros</span>
+                <span class="block text-[11px] leading-snug text-slate-500">
+                  Proyectos, requerimientos e incidencias con los filtros aplicados
+                </span>
+              </span>
+            </a>
+            <a href="{% url 'exportar_tareas' %}?{{ request.GET.urlencode }}"
+               onclick="cerrarMenu()"
+               class="flex items-start gap-2.5 border-t border-slate-100 px-3 py-2.5 transition-colors duration-150 hover:bg-brand-50">
+              <svg viewBox="0 0 24 24" class="mt-0.5 h-4 w-4 shrink-0 text-brand-700" aria-hidden="true"><use href="#i-lista"/></svg>
+              <span>
+                <span class="block text-xs font-semibold text-slate-800">Tareas</span>
+                <span class="block text-[11px] leading-snug text-slate-500">
+                  Todas las tareas, con el código de su registro
+                </span>
+              </span>
+            </a>
+            <p class="border-t border-slate-100 bg-slate-50 px-3 py-2 text-[11px] leading-snug text-slate-500">
+              El archivo lleva el código en la primera columna: actualizalo y volvé a subirlo.
+            </p>
+          </div>
+        </div>
+
+        <!-- Botón Presentación PowerPoint -->
+        <div class="relative" id="grupo-presentacion">
+          <button type="button" onclick="alternarMenuPresentacion()" id="btn-presentacion"
+                  aria-haspopup="true" aria-expanded="false"
+                  class="inline-flex min-h-[38px] cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-300 transition-colors duration-150 hover:bg-brand-50 hover:text-brand-800">
+            <svg viewBox="0 0 24 24" class="h-4 w-4 text-brand-700" aria-hidden="true"><use href="#i-presentacion"/></svg>
+            Presentación PPT
+          </button>
+
+          <div id="menu-presentacion"
+               class="absolute right-0 top-full z-40 mt-1 hidden w-80 overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-200 transition-all duration-150">
+            <div class="border-b border-slate-100 bg-slate-50 px-3.5 py-2.5">
+              <span class="block text-xs font-bold text-slate-800">Generar Presentación Ejecutiva</span>
+              <span class="block text-[11px] text-slate-500">Elegí el período a presentar en PowerPoint (.pptx):</span>
+            </div>
+
+            <a href="{% url 'exportar_presentacion' %}?periodo=semanal&{{ request.GET.urlencode }}"
+               onclick="cerrarMenuPresentacion()"
+               class="flex items-start gap-2.5 px-3.5 py-2.5 transition-colors duration-150 hover:bg-emerald-50">
+              <span class="mt-0.5 inline-flex h-6 w-7 shrink-0 items-center justify-center rounded bg-emerald-100 text-[10px] font-bold text-emerald-800">SEM</span>
+              <span>
+                <span class="block text-xs font-semibold text-slate-800">Reporte Semanal</span>
+                <span class="block text-[11px] leading-snug text-slate-500">
+                  Operación inmediata: 95% SLA, requerimientos y disponibilidad semanal
+                </span>
+              </span>
+            </a>
+
+            <a href="{% url 'exportar_presentacion' %}?periodo=mensual&{{ request.GET.urlencode }}"
+               onclick="cerrarMenuPresentacion()"
+               class="flex items-start gap-2.5 border-t border-slate-100 px-3.5 py-2.5 transition-colors duration-150 hover:bg-brand-50">
+              <span class="mt-0.5 inline-flex h-6 w-7 shrink-0 items-center justify-center rounded bg-brand-100 text-[10px] font-bold text-brand-800">MES</span>
+              <span>
+                <span class="block text-xs font-semibold text-slate-800">Reporte Mensual</span>
+                <span class="block text-[11px] leading-snug text-slate-500">
+                  Consolidado mensual, comparativa vs mes previo y proyectos en curso
+                </span>
+              </span>
+            </a>
+
+            <a href="{% url 'exportar_presentacion' %}?periodo=trimestral&{{ request.GET.urlencode }}"
+               onclick="cerrarMenuPresentacion()"
+               class="flex items-start gap-2.5 border-t border-slate-100 px-3.5 py-2.5 transition-colors duration-150 hover:bg-purple-50">
+              <span class="mt-0.5 inline-flex h-6 w-7 shrink-0 items-center justify-center rounded bg-purple-100 text-[10px] font-bold text-purple-800">TRI</span>
+              <span>
+                <span class="block text-xs font-semibold text-slate-800">Reporte Trimestral (Q1-Q4)</span>
+                <span class="block text-[11px] leading-snug text-slate-500">
+                  Evolución trimestral de capacidad, contracción de backlog e hitos
+                </span>
+              </span>
+            </a>
+
+            <a href="{% url 'exportar_presentacion' %}?periodo=anual&{{ request.GET.urlencode }}"
+               onclick="cerrarMenuPresentacion()"
+               class="flex items-start gap-2.5 border-t border-slate-100 px-3.5 py-2.5 transition-colors duration-150 hover:bg-amber-50">
+              <span class="mt-0.5 inline-flex h-6 w-7 shrink-0 items-center justify-center rounded bg-amber-100 text-[10px] font-bold text-amber-900">ANU</span>
+              <span>
+                <span class="block text-xs font-semibold text-slate-800">Reporte Anual Consolidado</span>
+                <span class="block text-[11px] leading-snug text-slate-500">
+                  Balance anual de cumplimiento, portafolio y disponibilidad 99.85%
+                </span>
+              </span>
+            </a>
+
+            <p class="border-t border-slate-100 bg-slate-50 px-3.5 py-2 text-[10.5px] leading-snug text-slate-500">
+              Presentación con 7 diapositivas, métricas, tablas y gráficos editables.
+            </p>
+          </div>
+        </div>
+
+        <button type="button" onclick="abrirModal('modal-importar')"
+                class="inline-flex min-h-[38px] cursor-pointer items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-300 transition-colors duration-150 hover:bg-slate-50">
+          <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-subir"/></svg>
+          Cargar archivo
+        </button>
+
+        <button type="button" onclick="abrirModal('modal-nuevo')"
+                class="inline-flex min-h-[38px] cursor-pointer items-center gap-1.5 rounded-lg bg-brand-800 px-3 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-brand-900">
+          <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-mas"/></svg>
+          Nuevo registro
+        </button>
+
+        <div class="flex items-center gap-2 border-l border-slate-200 pl-2">
+          {% if request.user.is_staff %}
+            <a href="/admin/" target="_blank" rel="noopener" title="Panel de administración"
+               class="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors duration-150 hover:bg-slate-100 hover:text-brand-800">
+              <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-escudo"/></svg>
+              <span class="sr-only">Panel de administración</span>
+            </a>
+          {% endif %}
+          <span class="hidden text-xs font-medium text-slate-600 sm:inline">{{ request.user.username }}</span>
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+            <button title="Cerrar sesión"
+                    class="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-rose-50 hover:text-rose-600">
+              <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-salir"/></svg>
+              <span class="sr-only">Cerrar sesión</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="contenido" class="mx-auto max-w-[1600px] px-4 py-5">
+
+    {% if messages %}
+      <div class="mb-4 space-y-2">
+        {% for msg in messages %}
+          <div role="status" class="animar-entrada flex items-start gap-2.5 rounded-lg px-4 py-3 text-sm ring-1
+            {% if msg.tags == 'error' %}bg-rose-50 text-rose-900 ring-rose-300{% else %}bg-emerald-50 text-emerald-900 ring-emerald-300{% endif %}">
+            <svg viewBox="0 0 24 24" class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
+              <use href="{% if msg.tags == 'error' %}#i-alerta{% else %}#i-ok{% endif %}"/>
+            </svg>
+            <span>{{ msg }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if m.total == 0 %}
+      <!-- ESTADO VACÍO -->
+      <div class="rounded-2xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200">
+        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+          <svg viewBox="0 0 24 24" class="h-7 w-7" aria-hidden="true"><use href="#i-carpeta"/></svg>
+        </div>
+        <p class="mb-1 text-lg font-semibold text-slate-800">Todavía no hay registros</p>
+        <p class="mx-auto mb-6 max-w-md text-sm text-slate-500">
+          Cargá el archivo semanal de pendientes para que el tablero se arme solo,
+          o creá el primer registro a mano.
+        </p>
+        <div class="flex flex-wrap justify-center gap-3">
+          <button type="button" onclick="abrirModal('modal-importar')"
+                  class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-800 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-900">
+            <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-subir"/></svg>
+            Cargar archivo
+          </button>
+          <button type="button" onclick="abrirModal('modal-nuevo')"
+                  class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-300 transition-colors duration-150 hover:bg-slate-50">
+            <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-mas"/></svg>
+            Nuevo registro
+          </button>
+        </div>
+      </div>
+    {% else %}
+
+    <!-- PANEL DE SEGUIMIENTO: recordatorios vencidos o del día -->
+    {% if recordatorios %}
+      <section aria-label="Requieren seguimiento"
+               class="mb-4 rounded-xl bg-white shadow-sm ring-1 ring-amber-300">
+        <div class="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 text-amber-700" aria-hidden="true"><use href="#i-campana"/></svg>
+          <h2 class="text-sm font-semibold text-amber-900">
+            Requieren seguimiento <span class="tabular">({{ recordatorios|length }})</span>
+          </h2>
+        </div>
+        <ul class="scrollbar-thin max-h-56 divide-y divide-slate-100 overflow-y-auto">
+          {% for r in recordatorios %}
+            <li class="flex items-start gap-2.5 px-4 py-2.5 text-sm transition-colors duration-150 hover:bg-amber-50/50">
+              <svg viewBox="0 0 24 24" class="mt-0.5 h-4 w-4 shrink-0 {% if r.vencido %}text-rose-600{% else %}text-amber-600{% endif %}" aria-hidden="true">
+                <use href="#i-campana"/>
+              </svg>
+              <div class="min-w-0 flex-1">
+                <span class="block font-medium text-slate-800">{{ r.titulo }}</span>
+                <span class="block text-xs text-slate-500">
+                  {% if r.ticket_asociado %}
+                    <button type="button" onclick="verDetalle({{ r.ticket_asociado.pk }})"
+                            class="cursor-pointer font-mono underline underline-offset-2 hover:text-brand-700">{{ r.objeto.codigo }}</button>
+                    · {{ r.ticket_asociado.nombre|truncatechars:60 }}
+                  {% endif %}
+                  · {{ r.fecha|date:"d/m/Y" }}
+                  {% if r.vencido %}· <strong class="text-rose-700">vencido</strong>{% endif %}
+                </span>
+                {% if r.nota %}<span class="mt-0.5 block text-xs italic text-slate-500">{{ r.nota|truncatechars:110 }}</span>{% endif %}
+              </div>
+              <button type="button" onclick="marcarRecordatorio({{ r.pk }})" title="Marcar como atendido"
+                      class="inline-flex min-h-[30px] shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-300 transition-colors duration-150 hover:bg-emerald-50 hover:text-emerald-700">
+                <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-ok"/></svg>
+                Atendido
+              </button>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    <!-- PRÓXIMAS REUNIONES -->
+    {% if reuniones %}
+      <section aria-label="Próximas reuniones"
+               class="mb-4 rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+        <div class="flex items-center gap-2 border-b border-slate-200 px-4 py-2.5">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 text-brand-700" aria-hidden="true"><use href="#i-calendario"/></svg>
+          <h2 class="text-sm font-semibold text-slate-800">Próximas reuniones</h2>
+        </div>
+        <ul class="divide-y divide-slate-100">
+          {% for m in reuniones %}
+            <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm">
+              <span class="tabular shrink-0 font-semibold text-brand-800">{{ m.fecha_hora|date:"d/m H:i" }}</span>
+              <span class="min-w-0 flex-1 truncate text-slate-700">{{ m.titulo }}</span>
+              {% if m.objeto %}
+                <span class="shrink-0 font-mono text-xs text-slate-400">{{ m.objeto.codigo }}</span>
+              {% endif %}
+              <a href="{% url 'reunion_ics' m.pk %}"
+                 class="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 transition-colors duration-150 hover:bg-brand-100 hover:text-brand-800">
+                <svg viewBox="0 0 24 24" class="h-3 w-3" aria-hidden="true"><use href="#i-bajar"/></svg>
+                .ics
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    <!-- TARJETAS DE RESUMEN -->
+    <section aria-label="Resumen general" class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total de registros</p>
+        <p class="tabular mt-1 text-3xl font-bold text-slate-900">{{ m.total }}</p>
+        <p class="mt-0.5 text-xs text-slate-400">
+          {{ m.por_categoria|length }} tipo{{ m.por_categoria|length|pluralize }} en seguimiento
+        </p>
+      </div>
+
+      <div class="rounded-xl bg-white p-4 shadow-sm ring-1 {% if m.en_riesgo %}ring-rose-300{% else %}ring-slate-200{% endif %}">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">En riesgo alto o mayor</p>
+        <p class="tabular mt-1 text-3xl font-bold {% if m.en_riesgo %}text-rose-700{% else %}text-emerald-700{% endif %}">{{ m.en_riesgo }}</p>
+        <p class="mt-0.5 text-xs text-slate-400">
+          {% if m.vencidos %}{{ m.vencidos }} vencido{{ m.vencidos|pluralize }} por fecha final{% else %}Ninguno vencido{% endif %}
+        </p>
+      </div>
+
+      <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Avance general</p>
+        <p class="tabular mt-1 text-3xl font-bold text-brand-700">{{ m.avance_general }}%</p>
+        <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div class="animar-barra h-full rounded-full bg-brand-600" style="width: {{ m.avance_general }}%"></div>
+        </div>
+      </div>
+
+      <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Sin asignar</p>
+        <p class="tabular mt-1 text-3xl font-bold {% if m.sin_asignar %}text-amber-600{% else %}text-slate-900{% endif %}">{{ m.sin_asignar }}</p>
+        <p class="mt-0.5 flex items-center gap-1 text-xs text-slate-400">
+          {% if m.sin_asignar %}
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 text-amber-500" aria-hidden="true"><use href="#i-alerta"/></svg>
+            sin responsable definido
+          {% else %}
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 text-emerald-500" aria-hidden="true"><use href="#i-ok"/></svg>
+            todos asignados
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Datos incompletos</p>
+        <p class="tabular mt-1 text-3xl font-bold {% if m.incompletos %}text-rose-600{% else %}text-slate-900{% endif %}">{{ m.incompletos }}</p>
+        <p class="mt-0.5 text-xs text-slate-400">falta fecha o solicitante</p>
+      </div>
+    </section>
+
+    <!-- GRÁFICOS -->
+    <section aria-label="Gráficos" class="mb-4 grid gap-3 lg:grid-cols-4">
+
+      <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <div class="mb-1 flex items-center gap-1.5">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#i-escudo-alerta"/></svg>
+          <h2 class="text-sm font-semibold text-slate-800">Distribución por riesgo</h2>
+        </div>
+        <p class="mb-3 text-xs text-slate-400">Calculado según atraso, avance y tareas</p>
+        <ul class="space-y-2.5">
+          {% for r in m.por_riesgo %}
+            <li>
+              <div class="mb-1 flex items-baseline justify-between gap-2 text-xs">
+                <a href="?riesgo={{ r.clave }}" class="font-medium text-slate-700 underline-offset-2 hover:text-brand-700 hover:underline">{{ r.label }}</a>
+                <span class="tabular shrink-0 text-slate-500">{{ r.total }}</span>
+              </div>
+              <div class="h-5 overflow-hidden rounded-md bg-slate-100">
+                <div class="animar-barra flex h-full items-center justify-end rounded-md pr-2 text-[10px] font-bold text-white {{ r.clave|color_riesgo }}"
+                     style="width: {% widthratio r.total m.total 100 %}%"
+                     role="img" aria-label="{{ r.label }}: {{ r.total }} de {{ m.total }} registros">
+                  {% if r.total %}<span class="tabular">{{ r.total }}</span>{% endif %}
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <h2 class="mb-4 text-sm font-semibold text-slate-800">Distribución por tipo</h2>
+        <ul class="space-y-3.5">
+          {% for c in m.por_categoria %}
+            <li>
+              <div class="mb-1.5 flex items-baseline justify-between gap-2 text-xs">
+                <span class="font-medium text-slate-700">{{ c.label }}</span>
+                <span class="tabular shrink-0 text-slate-500">{{ c.total }} · avance {{ c.avance }}%</span>
+              </div>
+              <div class="h-6 overflow-hidden rounded-md bg-slate-100">
+                <div class="animar-barra flex h-full items-center justify-end rounded-md pr-2 text-[10px] font-bold text-white
+                            {% if c.clave == 'proyecto' %}bg-brand-700{% elif c.clave == 'requerimiento' %}bg-violet-600{% else %}bg-rose-600{% endif %}"
+                     style="width: {% widthratio c.total m.total 100 %}%"
+                     role="img" aria-label="{{ c.label }}: {{ c.total }} de {{ m.total }} registros">
+                  <span class="tabular">{{ c.total }}</span>
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <h2 class="mb-4 text-sm font-semibold text-slate-800">Distribución por estatus</h2>
+        <ul class="space-y-3.5">
+          {% for e in m.por_estatus %}
+            <li>
+              <div class="mb-1.5 flex items-baseline justify-between gap-2 text-xs">
+                <span class="font-medium text-slate-700">{{ e.label }}</span>
+                <span class="tabular shrink-0 text-slate-500">{{ e.total }}</span>
+              </div>
+              <div class="h-6 overflow-hidden rounded-md bg-slate-100">
+                <div class="animar-barra flex h-full items-center justify-end rounded-md pr-2 text-[10px] font-bold text-white {{ e.label|color_estatus }}"
+                     style="width: {% widthratio e.total m.total 100 %}%"
+                     role="img" aria-label="{{ e.label }}: {{ e.total }} de {{ m.total }} registros">
+                  <span class="tabular">{{ e.total }}</span>
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <div class="mb-1 flex items-center gap-1.5">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#i-usuarios"/></svg>
+          <h2 class="text-sm font-semibold text-slate-800">Carga por responsable</h2>
+        </div>
+        <p class="mb-3 text-xs text-slate-400">Registros asignados y avance promedio</p>
+        <ul class="scrollbar-thin max-h-52 space-y-2.5 overflow-y-auto pr-1">
+          {% for a in m.por_asignado %}
+            <li>
+              <div class="mb-1 flex items-baseline justify-between gap-2 text-xs">
+                <span class="truncate font-medium text-slate-700">{{ a.label }}</span>
+                <span class="tabular shrink-0 text-slate-500">{{ a.total }} · {{ a.avance }}%</span>
+              </div>
+              <div class="h-5 overflow-hidden rounded-md bg-slate-100">
+                <div class="animar-barra flex h-full items-center justify-end rounded-md bg-emerald-600 pr-2 text-[10px] font-bold text-white"
+                     style="width: {% widthratio a.total m.por_asignado.0.total 100 %}%"
+                     role="img" aria-label="{{ a.label }}: {{ a.total }} registros, {{ a.avance }} por ciento de avance">
+                  <span class="tabular">{{ a.total }}</span>
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+
+    <!-- TABLA -->
+    <section class="rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <div class="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-3">
+        <h2 class="text-sm font-semibold text-slate-800">
+          Registros <span class="tabular text-slate-400">({{ tickets|length }})</span>
+        </h2>
+
+        <form method="get" role="search" class="ml-auto flex flex-wrap items-center gap-2">
+          <div class="relative">
+            <svg viewBox="0 0 24 24" class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" aria-hidden="true"><use href="#i-buscar"/></svg>
+            <input name="q" value="{{ filtros.q }}" placeholder="Buscar por nombre…" aria-label="Buscar por nombre"
+                   class="w-44 rounded-lg border border-slate-300 py-1.5 pl-8 pr-3 text-xs transition-colors duration-150 placeholder:text-slate-400 focus:border-brand-600">
+          </div>
+
+          <select name="categoria" aria-label="Filtrar por tipo" onchange="this.form.submit()"
+                  class="cursor-pointer rounded-lg border border-slate-300 px-2 py-1.5 text-xs transition-colors duration-150 focus:border-brand-600">
+            <option value="">Todos los tipos</option>
+            {% for valor, label in categorias %}
+              <option value="{{ valor }}" {% if filtros.categoria == valor %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+
+          <select name="estatus" aria-label="Filtrar por estatus" onchange="this.form.submit()"
+                  class="cursor-pointer rounded-lg border border-slate-300 px-2 py-1.5 text-xs transition-colors duration-150 focus:border-brand-600">
+            <option value="">Todos los estatus</option>
+            {% for e in estatus_lista %}
+              <option value="{{ e.valor }}" {% if filtros.estatus == e.valor %}selected{% endif %}>
+                {{ e.valor }} ({{ e.total }})
+              </option>
+            {% endfor %}
+          </select>
+
+          <select name="responsable" aria-label="Filtrar por responsable" onchange="this.form.submit()"
+                  class="cursor-pointer rounded-lg border border-slate-300 px-2 py-1.5 text-xs transition-colors duration-150 focus:border-brand-600">
+            <option value="">Todos los responsables</option>
+            {% for r in responsables %}
+              <option value="{{ r }}" {% if filtros.responsable == r %}selected{% endif %}>{{ r }}</option>
+            {% endfor %}
+          </select>
+
+          <select name="riesgo" aria-label="Filtrar por nivel de riesgo" onchange="this.form.submit()"
+                  class="cursor-pointer rounded-lg border border-slate-300 px-2 py-1.5 text-xs transition-colors duration-150 focus:border-brand-600">
+            <option value="">Todos los riesgos</option>
+            {% for valor, label in niveles_riesgo %}
+              <option value="{{ valor }}" {% if filtros.riesgo == valor %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+
+          <button class="cursor-pointer rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-slate-900">
+            Filtrar
+          </button>
+          {% if filtros.q or filtros.categoria or filtros.estatus or filtros.responsable or filtros.riesgo %}
+            <a href="{% url 'dashboard' %}" class="cursor-pointer rounded px-1 text-xs text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">Limpiar</a>
+          {% endif %}
+        </form>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[1150px] text-sm">
+          <caption class="sr-only">Listado de proyectos, requerimientos e incidencias</caption>
+          <thead class="bg-slate-50 text-left text-[11px] uppercase tracking-wider text-slate-500">
+            <tr>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Código</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Nombre</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Tipo</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Asignado a</th>
+              <th scope="col" class="w-44 px-4 py-2.5 font-semibold">Avance</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Fecha final</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Riesgo</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Estatus</th>
+              <th scope="col" class="px-4 py-2.5 text-center font-semibold">Tareas</th>
+              <th scope="col" class="px-4 py-2.5 text-right font-semibold">Detalle</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for t in tickets %}
+              <tr class="transition-colors duration-150 hover:bg-brand-50/50">
+                <td class="whitespace-nowrap px-4 py-2.5">
+                  <span class="font-mono text-xs font-semibold text-slate-700">{{ t.codigo }}</span>
+                  {% if t.incompleto %}
+                    <svg viewBox="0 0 24 24" class="ml-1 inline-block h-3.5 w-3.5 align-text-bottom text-amber-500"
+                         role="img" aria-label="Datos incompletos: falta fecha solicitada o funcional solicitante">
+                      <use href="#i-alerta"/>
+                    </svg>
+                  {% endif %}
+                </td>
+                <td class="max-w-md px-4 py-2.5">
+                  <span class="line-clamp-2 text-slate-800">{{ t.nombre }}</span>
+                </td>
+                <td class="whitespace-nowrap px-4 py-2.5">
+                  <span class="rounded-full px-2 py-0.5 text-xs font-medium
+                    {% if t.categoria == 'proyecto' %}bg-brand-100 text-brand-800
+                    {% elif t.categoria == 'requerimiento' %}bg-violet-100 text-violet-800
+                    {% else %}bg-rose-100 text-rose-800{% endif %}">
+                    {{ t.get_categoria_display }}
+                  </span>
+                </td>
+                <td class="whitespace-nowrap px-4 py-2.5 text-slate-600">
+                  {{ t.asignado|default:"—" }}
+                </td>
+                <td class="px-4 py-2.5">
+                  <div class="flex items-center gap-2">
+                    <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <div class="h-full rounded-full transition-all duration-300 {% if t.avance >= 90 %}bg-emerald-600{% elif t.avance >= 50 %}bg-brand-600{% else %}bg-amber-500{% endif %}"
+                           style="width: {{ t.avance }}%"></div>
+                    </div>
+                    <span class="tabular w-10 text-right text-xs font-semibold text-slate-700">{{ t.avance }}%</span>
+                  </div>
+                </td>
+                <td class="whitespace-nowrap px-4 py-2.5">
+                  {% if t.fecha_fin %}
+                    <span class="tabular text-xs {% if t.vencido %}font-semibold text-rose-700{% else %}text-slate-600{% endif %}">
+                      {{ t.fecha_fin|date:"d/m/y" }}
+                    </span>
+                    {% if t.vencido %}
+                      <span class="tabular ml-0.5 text-[10px] font-semibold text-rose-600">+{{ t.dias_atraso }}d</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-xs text-slate-300">—</span>
+                  {% endif %}
+                </td>
+                <td class="whitespace-nowrap px-4 py-2.5">
+                  <span class="tabular rounded px-2 py-0.5 text-xs font-semibold {{ t.risk_level|badge_riesgo }}"
+                        title="{{ t.risk_level_label }} · score {{ t.risk_score }} de 1000">
+                    {{ t.risk_score }}
+                  </span>
+                </td>
+                <td class="whitespace-nowrap px-4 py-2.5">
+                  <span class="rounded px-2 py-0.5 text-xs font-medium {{ t.estatus|badge_estatus }}">{{ t.estatus }}</span>
+                </td>
+                <td class="whitespace-nowrap px-4 py-2.5 text-center">
+                  {% with r=t.resumen_tareas %}
+                    {% if r %}
+                      <span class="tabular inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium
+                        {% if r.vencidas %}bg-rose-100 text-rose-800{% elif r.listas == r.total %}bg-emerald-100 text-emerald-800{% else %}bg-slate-100 text-slate-700{% endif %}"
+                        title="{{ r.listas }} de {{ r.total }} listas{% if r.vencidas %} · {{ r.vencidas }} vencida{{ r.vencidas|pluralize }}{% endif %}">
+                        {{ r.listas }}/{{ r.total }}
+                      </span>
+                    {% else %}
+                      <span class="text-xs text-slate-300">—</span>
+                    {% endif %}
+                  {% endwith %}
+                </td>
+                <td class="whitespace-nowrap px-4 py-2.5 text-right">
+                  <button type="button" onclick="verDetalle({{ t.pk }})"
+                          class="inline-flex min-h-[32px] cursor-pointer items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors duration-150 hover:bg-brand-100 hover:text-brand-800">
+                    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" aria-hidden="true"><use href="#i-ojo"/></svg>
+                    Ver detalle
+                    <span class="sr-only">de {{ t.codigo }} {{ t.nombre }}</span>
+                  </button>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="10" class="px-4 py-12 text-center">
+                  <svg viewBox="0 0 24 24" class="mx-auto mb-2 h-8 w-8 text-slate-300" aria-hidden="true"><use href="#i-buscar"/></svg>
+                  <p class="text-sm font-medium text-slate-600">Ningún registro coincide con esos filtros</p>
+                  <a href="{% url 'dashboard' %}" class="mt-1 inline-block text-xs text-brand-700 underline underline-offset-2 hover:text-brand-900">Limpiar filtros</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if ultima_carga %}
+        <div class="flex flex-wrap items-center gap-1.5 border-t border-slate-200 px-4 py-2 text-xs text-slate-500">
+          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true"><use href="#i-reloj"/></svg>
+          Última carga: <strong class="font-semibold text-slate-700">{{ ultima_carga.archivo }}</strong>
+          el {{ ultima_carga.creado_en|date:"d/m/Y H:i" }}
+          {% if ultima_carga.usuario %}por <strong class="font-semibold text-slate-700">{{ ultima_carga.usuario.username }}</strong>{% endif %}
+          · <span class="tabular">{{ ultima_carga.creados }}</span> creados,
+          <span class="tabular">{{ ultima_carga.actualizados }}</span> actualizados
+        </div>
+      {% endif %}
+    </section>
+    {% endif %}
+  </main>
+</div>
+
+<!-- ================= MODALES ================= -->
+
+<!-- Alta y edición de tarea. z-index mayor que los demás porque se
+     abre por encima del modal de detalle. -->
+<div id="modal-tarea" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true" aria-label="Tarea">
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]" onclick="cerrarModal('modal-tarea')"></div>
+  <div class="animar-entrada absolute inset-x-0 top-8 mx-auto max-h-[85dvh] w-[95%] max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+    <div id="tarea-contenido" class="p-6">{% include "tracker/_cargando.html" %}</div>
+  </div>
+</div>
+
+<!-- Alta de recordatorios y reuniones. Mismo z-index que el modal de
+     tarea: se abre por encima del detalle. -->
+<div id="modal-agenda-form" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true" aria-label="Recordatorio o reunión">
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]" onclick="cerrarModal('modal-agenda-form')"></div>
+  <div class="animar-entrada absolute inset-x-0 top-8 mx-auto max-h-[85dvh] w-[95%] max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+    <div id="agenda-form-contenido" class="p-6">{% include "tracker/_cargando.html" %}</div>
+  </div>
+</div>
+
+<div id="modal-detalle" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-label="Detalle del registro">
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]" onclick="cerrarModal('modal-detalle')"></div>
+  <div class="animar-entrada absolute inset-x-0 top-6 mx-auto max-h-[88dvh] w-[95%] max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+    <div id="detalle-contenido" class="p-6">{% include "tracker/_cargando.html" %}</div>
+  </div>
+</div>
+
+<div id="modal-nuevo" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-label="Nuevo registro">
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]" onclick="cerrarModal('modal-nuevo')"></div>
+  <div class="animar-entrada absolute inset-x-0 top-6 mx-auto max-h-[88dvh] w-[95%] max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="text-base font-semibold text-slate-900">Nuevo registro</h3>
+      <button type="button" onclick="cerrarModal('modal-nuevo')"
+              class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700">
+        <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-cerrar"/></svg>
+        <span class="sr-only">Cerrar</span>
+      </button>
+    </div>
+    <form method="post" action="{% url 'ticket_crear' %}" class="space-y-3" onsubmit="bloquear(this)">
+      {% csrf_token %}
+      {% include "tracker/_campos.html" with form=form %}
+      <div class="flex justify-end gap-2 border-t border-slate-200 pt-4">
+        <button type="button" onclick="cerrarModal('modal-nuevo')"
+                class="cursor-pointer rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-300 transition-colors duration-150 hover:bg-slate-50">Cancelar</button>
+        <button class="cursor-pointer rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-900 disabled:cursor-not-allowed disabled:opacity-50">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-editar" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-label="Editar registro">
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]" onclick="cerrarModal('modal-editar')"></div>
+  <div class="animar-entrada absolute inset-x-0 top-6 mx-auto max-h-[88dvh] w-[95%] max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+    <div id="editar-contenido" class="p-6">{% include "tracker/_cargando.html" %}</div>
+  </div>
+</div>
+
+<div id="modal-importar" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-label="Cargar archivo">
+  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]" onclick="cerrarModal('modal-importar')"></div>
+  <div class="animar-entrada absolute inset-x-0 top-20 mx-auto w-[95%] max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="flex items-center gap-2 text-base font-semibold text-slate-900">
+        <svg viewBox="0 0 24 24" class="h-5 w-5 text-brand-700" aria-hidden="true"><use href="#i-subir"/></svg>
+        Cargar archivo de pendientes
+      </h3>
+      <button type="button" onclick="cerrarModal('modal-importar')"
+              class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700">
+        <svg viewBox="0 0 24 24" class="h-4 w-4" aria-hidden="true"><use href="#i-cerrar"/></svg>
+        <span class="sr-only">Cerrar</span>
+      </button>
+    </div>
+
+    <form method="post" action="{% url 'importar' %}" enctype="multipart/form-data" class="space-y-4" onsubmit="bloquear(this, 'Procesando archivo…')">
+      {% csrf_token %}
+      <div>
+        <label for="{{ import_form.archivo.id_for_label }}" class="mb-1.5 block text-xs font-semibold text-slate-700">
+          Archivo <span class="text-rose-600" aria-hidden="true">*</span>
+        </label>
+        {{ import_form.archivo }}
+        <p class="mt-1.5 text-xs text-slate-500">Formatos aceptados: .xlsx, .xls o .docx · máximo 25 MB</p>
+      </div>
+
+      <div class="space-y-2 rounded-lg bg-brand-50 p-3 text-xs leading-relaxed text-slate-700 ring-1 ring-brand-100">
+        <p class="font-semibold text-brand-900">Acepta dos tipos de archivo</p>
+        <p>
+          <strong>Registros:</strong> el archivo semanal de pendientes, o el que
+          bajaste con <em>Exportar → Registros</em>.
+        </p>
+        <p>
+          <strong>Tareas:</strong> el que bajaste con <em>Exportar → Tareas</em>.
+          Cada fila necesita el <strong>código del registro</strong> al que pertenece.
+        </p>
+        <p class="border-t border-brand-100 pt-2">
+          El sistema reconoce solo cuál de los dos es. Si la fila trae código, se
+          actualiza; si no, se crea. <strong>Nada se borra.</strong>
+        </p>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="cerrarModal('modal-importar')"
+                class="cursor-pointer rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-300 transition-colors duration-150 hover:bg-slate-50">Cancelar</button>
+        <button class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-800 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-900 disabled:cursor-not-allowed disabled:opacity-50">
+          Cargar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Se recuerda quién tenía el foco para devolvérselo al cerrar el modal:
+  // sin esto, quien navega con teclado queda perdido al volver a la tabla.
+  let focoPrevio = null;
+
+  function abrirModal(id) {
+    focoPrevio = document.activeElement;
+    const modal = document.getElementById(id);
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    modal.querySelector('input, select, textarea, button')?.focus();
+  }
+
+  function cerrarModal(id) {
+    document.getElementById(id).classList.add('hidden');
+    if (!document.querySelector('[role="dialog"]:not(.hidden)')) {
+      document.body.style.overflow = '';
+    }
+    focoPrevio?.focus();
+  }
+
+  function cerrarTodos() {
+    document.querySelectorAll('[role="dialog"]').forEach(m => m.classList.add('hidden'));
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { cerrarTodos(); cerrarMenu(); }
+  });
+
+  // Evita el doble envío: un segundo clic en "Guardar" crearía un duplicado.
+  function bloquear(form, texto) {
+    const btn = form.querySelector('button:not([type="button"])');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = texto || 'Guardando…';
+    }
+  }
+
+  async function verDetalle(pk) {
+    abrirModal('modal-detalle');
+    const caja = document.getElementById('detalle-contenido');
+    try {
+      const res = await fetch(`/ticket/${pk}/`);
+      caja.innerHTML = await res.text();
+    } catch {
+      caja.innerHTML = '<p class="py-8 text-center text-sm text-rose-600">No se pudo cargar el detalle. Revisá la conexión e intentá de nuevo.</p>';
+    }
+  }
+
+  // --- Menú de exportación ---
+  function alternarMenu() {
+    const menu = document.getElementById('menu-exportar');
+    const abierto = !menu.classList.toggle('hidden');
+    document.getElementById('btn-exportar').setAttribute('aria-expanded', String(abierto));
+  }
+
+  function cerrarMenu() {
+    document.getElementById('menu-exportar').classList.add('hidden');
+    document.getElementById('btn-exportar').setAttribute('aria-expanded', 'false');
+  }
+
+  // --- Menú de Presentación PowerPoint ---
+  function alternarMenuPresentacion() {
+    const menu = document.getElementById('menu-presentacion');
+    const abierto = !menu.classList.toggle('hidden');
+    document.getElementById('btn-presentacion').setAttribute('aria-expanded', String(abierto));
+  }
+
+  function cerrarMenuPresentacion() {
+    document.getElementById('menu-presentacion').classList.add('hidden');
+    document.getElementById('btn-presentacion').setAttribute('aria-expanded', 'false');
+  }
+
+  // Soporte de interacción por Hover (pasar el ratón por encima)
+  const grupoPres = document.getElementById('grupo-presentacion');
+  if (grupoPres) {
+    grupoPres.addEventListener('mouseenter', () => {
+      document.getElementById('menu-presentacion').classList.remove('hidden');
+      document.getElementById('btn-presentacion').setAttribute('aria-expanded', 'true');
+    });
+    grupoPres.addEventListener('mouseleave', () => {
+      document.getElementById('menu-presentacion').classList.add('hidden');
+      document.getElementById('btn-presentacion').setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  // Un clic fuera de los menús los cierra.
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#menu-exportar') && !e.target.closest('#btn-exportar')) {
+      cerrarMenu();
+    }
+    if (!e.target.closest('#menu-presentacion') && !e.target.closest('#btn-presentacion')) {
+      cerrarMenuPresentacion();
+    }
+  });
+
+  // --- Tareas ---
+  function getCsrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el) return el.value;
+    const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+    return cookie ? cookie.split('=')[1] : '';
+  }
+
+  async function nuevaTarea(pk) {
+    abrirModal('modal-tarea');
+    const caja = document.getElementById('tarea-contenido');
+    try {
+      const res = await fetch(`/ticket/${pk}/tarea/nueva/`);
+      caja.innerHTML = await res.text();
+      caja.querySelector('input, textarea')?.focus();
+    } catch {
+      caja.innerHTML = '<p class="py-8 text-center text-sm text-rose-600">No se pudo abrir el formulario. Revisá la conexión.</p>';
+    }
+  }
+
+  async function editarTarea(pk) {
+    abrirModal('modal-tarea');
+    const caja = document.getElementById('tarea-contenido');
+    try {
+      const res = await fetch(`/tarea/${pk}/editar/`);
+      caja.innerHTML = await res.text();
+      caja.querySelector('input, textarea')?.focus();
+    } catch {
+      caja.innerHTML = '<p class="py-8 text-center text-sm text-rose-600">No se pudo abrir la tarea.</p>';
+    }
+  }
+
+  async function eliminarTarea(pk, codigo, ticketPk) {
+    if (!confirm(`¿Estás seguro de que deseas eliminar la tarea ${codigo}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    const token = getCsrfToken();
+    try {
+      const res = await fetch(`/tarea/${pk}/eliminar/`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': token
+        }
+      });
+      if (res.ok) {
+        cerrarModal('modal-tarea');
+        if (ticketPk) {
+          const resTareas = await fetch(`/ticket/${ticketPk}/tareas/`);
+          const cajaTareas = document.getElementById('caja-tareas');
+          if (cajaTareas && resTareas.ok) {
+            cajaTareas.innerHTML = await resTareas.text();
+          } else {
+            verDetalle(ticketPk);
+          }
+        } else {
+          location.reload();
+        }
+      } else {
+        alert('No se pudo eliminar la tarea.');
+      }
+    } catch {
+      alert('Error de conexión al eliminar la tarea.');
+    }
+  }
+
+  async function editar(pk) {
+    cerrarModal('modal-detalle');
+    abrirModal('modal-editar');
+    const caja = document.getElementById('editar-contenido');
+    try {
+      const res = await fetch(`/ticket/${pk}/editar/`);
+      caja.innerHTML = await res.text();
+    } catch {
+      caja.innerHTML = '<p class="py-8 text-center text-sm text-rose-600">No se pudo cargar el formulario.</p>';
+    }
+  }
+
+  // --- Recordatorios y reuniones ---
+  //
+  // Todos cargan un fragmento HTML en el mismo modal. Igual que el resto
+  // de la pantalla: el servidor manda HTML ya armado, no JSON que haya
+  // que renderizar de este lado.
+
+  async function abrirEnAgenda(url) {
+    abrirModal('modal-agenda-form');
+    const caja = document.getElementById('agenda-form-contenido');
+    try {
+      const res = await fetch(url);
+      caja.innerHTML = await res.text();
+      caja.querySelector('input, textarea')?.focus();
+    } catch {
+      caja.innerHTML = '<p class="py-8 text-center text-sm text-rose-600">No se pudo abrir el formulario. Revisá la conexión.</p>';
+    }
+  }
+
+  const nuevoRecordatorio      = pk => abrirEnAgenda(`/ticket/${pk}/recordatorio/nuevo/`);
+  const nuevaReunion           = pk => abrirEnAgenda(`/ticket/${pk}/reunion/nueva/`);
+  const nuevoRecordatorioTarea = pk => abrirEnAgenda(`/tarea/${pk}/recordatorio/nuevo/`);
+  const nuevaReunionTarea      = pk => abrirEnAgenda(`/tarea/${pk}/reunion/nueva/`);
+  const editarReunion          = pk => abrirEnAgenda(`/reunion/${pk}/editar/`);
+
+  // Refresca solo el bloque de agenda del detalle. Si el modal de detalle
+  // no está abierto (el panel del tablero), se recarga la página entera
+  // para que el contador de seguimiento quede al día.
+  async function refrescarAgenda(ticketPk) {
+    const caja = document.getElementById('caja-agenda');
+    if (!caja || !ticketPk) { location.reload(); return; }
+
+    try {
+      const res = await fetch(`/ticket/${ticketPk}/agenda/`);
+      if (res.ok) caja.innerHTML = await res.text();
+      else location.reload();
+    } catch {
+      location.reload();
+    }
+  }
+
+  async function accionAgenda(url, ticketPk, confirmacion) {
+    if (confirmacion && !confirm(confirmacion)) return;
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCsrfToken(),
+        },
+      });
+      if (res.ok) refrescarAgenda(ticketPk);
+      else alert('No se pudo completar la acción.');
+    } catch {
+      alert('Error de conexión.');
+    }
+  }
+
+  const marcarRecordatorio = (pk, ticketPk) =>
+    accionAgenda(`/recordatorio/${pk}/visto/`, ticketPk);
+
+  const eliminarRecordatorio = (pk, ticketPk) =>
+    accionAgenda(`/recordatorio/${pk}/eliminar/`, ticketPk,
+      '¿Eliminar este recordatorio? Esta acción no se puede deshacer.');
+
+  const eliminarReunion = (pk, ticketPk) =>
+    accionAgenda(`/reunion/${pk}/eliminar/`, ticketPk,
+      '¿Eliminar esta reunión? Esta acción no se puede deshacer.');
+
+  // ---------------------------------------------------------------
+  // Detección de datos cargados por otra estación de trabajo.
+  // Se guarda la marca del último movimiento que vio esta pantalla y
+  // cada 15 segundos se consulta si hay una más nueva. Solo viaja esa
+  // marca, no la tabla entera.
+  // ---------------------------------------------------------------
+  const ultimoVisto = "{{ ultimo_movimiento }}";
+
+  async function revisarNovedades() {
+    // No interrumpir mientras alguien está escribiendo en un modal.
+    if (document.querySelector('[role="dialog"]:not(.hidden)')) return;
+
+    try {
+      const res = await fetch('{% url "api_ultimo" %}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (ultimoVisto && data.ultimo_movimiento && data.ultimo_movimiento > ultimoVisto) {
+        const aviso = document.getElementById('aviso-nuevo');
+        aviso.classList.remove('hidden');
+        aviso.classList.add('flex');
+      }
+    } catch { /* sin red: se reintenta en el próximo ciclo */ }
+  }
+
+  setInterval(revisarNovedades, 15000);
+</script>
+{% endwith %}
+{% endblock %}
